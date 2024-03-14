@@ -68,3 +68,13 @@ s6 = 'lorem ipsum dolor sit amet, consectetur adipiscing elit'
 
 # Lorem ipsum dolor sit amet, consectetur adipiscing elit
 
+# форматирование строк
+
+n = 105
+s7_0 = 'str 1'
+s7_1 = 'str 2'
+s7 = f'Lorem ipsum: {s7_0}. {s7_1}. {8 + 8}, {str(n)}'
+print(s7)
+
+s7_2 = 'Lorem ipsum: {}. {}'.format(s7_1, s7_0)
+print(s7_2)

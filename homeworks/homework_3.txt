@@ -1,0 +1,56 @@
+!!! Запрешено использовать готовые библиотеки
+
+person = {
+    'name': 'John',
+    'age': 18,
+    'last_name': 'Johnson',
+    'address': {
+        'city': 'Durand',
+        'state': 'Michigan(MI)',
+        'zip': 48429,
+        'street': 'Mount Street'
+    },
+    'phone': None,
+}
+
+сейчас:
+{
+    "name": "John",
+    "age": 18,
+    "last_name": "Johnson",
+    "address": {
+      "city": "Durand",
+      "state": "Michigan(MI)",
+      "zip": 48429,
+      "street": "Mount Street"
+    },
+    "phone": "",
+    "employees": {
+        "company": {
+            "name": "Google",
+            "address": {
+                "city": "",
+                "state": "",
+            },
+        }
+    }
+  }
+
+вывести в консоль:
+print_dict(person)
+{
+    "name": "John",
+    "age": 18,
+    "last_name": "Johnson",
+    "address.city": "Durand",
+    "address.state": "Michigan(MI)",
+    "address.zip": 48429,
+    "address.street": "Mount Street",
+    "phone": "",
+    "employees.company.name": "Google",
+    "employees.company.address.city": "",
+    "employees.company.address.state": "",
+}
+
+help text: реализовать рекурсивную функцию
+
