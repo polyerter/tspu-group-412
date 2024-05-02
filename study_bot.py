@@ -10,6 +10,7 @@ import logging
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes, ConversationHandler
+import conf
 
 # Enable logging
 logging.basicConfig(
@@ -20,24 +21,82 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
+TOKEN = conf.TOKEN
 
 # Stages
 START_ROUTES, END_ROUTES = range(2)
 # Callback data
-STAGE_ONE, STAGE_TWO, STAGE_THREE, STAGE_FOUR = range(4)
+STAGE_ONE, STAGE_TWO, STAGE_THREE, STAGE_FOUR,  STAGE_FIVE,  STAGE_SIX  = range(6)
+
+COURSE_PATTERN = 'COURSE_'
+SECTION_PATTERN = 'SECTION_'
+DETAIL_PATTERN = 'DETAIL_'
+
+details = [
+    'text 1',
+    'text 2',
+    'text 3',
+    'text 4',
+]
+
+courses = {
+    'python': details,
+    'sql': details,
+    'php': details,
+}
+
+
+class Item:
+    course: str
+    section: str
+
+
+item = Item()
+
+class KeyboardObj:
+    id: int
+    text: str
+    pattern: str
+
+    def __init__(self, id: int, text: str, pattern: str):
+        self.id = id
+        self.text = text
+        self.pattern = pattern
+
+    def get_callback_data(self):
+        return self.pattern + str(self.id)
+ 
+
+def selected_course(name):
+    return COURSE_PATTERN + str(name)
+
+
+def get_course(data: str) -> str:
+    return data.replace(COURSE_PATTERN, "")
+
+
+def selected_section(name):
+    return SECTION_PATTERN + str(name)
+
+
+def get_section(data: str) -> str:
+    return data.replace(SECTION_PATTERN, "")
+
+def make_keyboard_of_list(items, func) -> list:
+    return list(map(lambda x: InlineKeyboardButton(x.text, callback_data=func(x.get_callback_data())), items))
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends a message with three inline buttons attached."""
     keyboard = [
         [
-            InlineKeyboardButton("Python", callback_data=str(STAGE_ONE)),
-            InlineKeyboardButton("SQL", callback_data="2"),
-            InlineKeyboardButton("PHP", callback_data="3"),
-            InlineKeyboardButton("Telegram", callback_data="4"),
-            InlineKeyboardButton("HTML", callback_data="5"),
+            InlineKeyboardButton("Python", callback_data=selected_course('python')),
+            InlineKeyboardButton("SQL", callback_data=selected_course('sql')),
+            InlineKeyboardButton("PHP", callback_data=selected_course('php')),
+            InlineKeyboardButton("Telegram", callback_data=selected_course('telegram')),
+            InlineKeyboardButton("HTML", callback_data=selected_course('html')),
         ],
-        [InlineKeyboardButton("Random", callback_data="0")],
+        # [InlineKeyboardButton("Random", callback_data="0")],
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -47,46 +106,48 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     return START_ROUTES
 
 
-async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Parses the CallbackQuery and updates the message text."""
+async def change_course(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
 
-    # CallbackQueries need to be answered, even if no notification to the user is needed
-    # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
-    await query.answer()
+    item.course = get_course(query.data)
 
-    folder = ''
+    sections = [
+        KeyboardObj(1, 'Типы данных', SECTION_PATTERN), 
+        KeyboardObj(2, 'Циклы', SECTION_PATTERN), 
+        KeyboardObj(3, 'Объекты', SECTION_PATTERN),
+    ]
 
-    if query.data == '1':
-        folder = 'cats'
-    elif query.data == '2':
-        folder = 'dogs'
-    else:
-        folder = 'cats'
-
-    image_name = '1.jpg'
-    image_path = f'images/{folder}/{image_name}'
-
-    await query.message.reply_photo(
-        photo=open(image_path, 'rb'),
-    )
-
-    await query.edit_message_text(text=f"{image_name}")
-
-
-async def one(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Show new choice of buttons"""
-    query = update.callback_query
     await query.answer()
     keyboard = [
-        [
-            InlineKeyboardButton("3", callback_data=str(STAGE_THREE)),
-            InlineKeyboardButton("4", callback_data=str(STAGE_FOUR)),
-        ]
+        make_keyboard_of_list(sections, selected_section)
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
-        text="First CallbackQueryHandler, Choose a route", reply_markup=reply_markup
+        text="Выберите раздел:", reply_markup=reply_markup
+    )
+    return START_ROUTES
+
+
+async def change_section(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+
+    item.section = get_section(query.data)
+
+    detail = courses[item.course][int(item.section)]
+
+    print(
+        item.__dict__,
+        'detail', detail
+    )
+
+    await query.answer()
+    keyboard = [
+        # InlineKeyboardButton("Python", callback_data=selected_course('python')),
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(
+        text=detail, reply_markup=reply_markup
     )
     return START_ROUTES
 
@@ -94,7 +155,6 @@ async def one(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 def main() -> None:
     """Run the bot."""
     # Create the Application and pass it your bot's token.
-    TOKEN = ''
     
     application = Application.builder().token(TOKEN).build()
 
@@ -102,10 +162,15 @@ def main() -> None:
         entry_points=[CommandHandler("start", start)],
         states={
             START_ROUTES: [
-                CallbackQueryHandler(one, pattern="^" + str(STAGE_ONE) + "$"),
-                # CallbackQueryHandler(two, pattern="^" + str(TWO) + "$"),
-                # CallbackQueryHandler(three, pattern="^" + str(THREE) + "$"),
-                # CallbackQueryHandler(four, pattern="^" + str(FOUR) + "$"),
+                CallbackQueryHandler(change_course, pattern="^" + COURSE_PATTERN),
+                CallbackQueryHandler(change_section, pattern="^" + SECTION_PATTERN),
+
+                # CallbackQueryHandler(one, pattern="^" + str(STAGE_ONE) + "$"),
+                # CallbackQueryHandler(two, pattern="^" + str(STAGE_TWO) + "$"),
+                # CallbackQueryHandler(three, pattern="^" + str(STAGE_THREE) + "$"),
+                # CallbackQueryHandler(four, pattern="^" + str(STAGE_FOUR) + "$"),
+                # CallbackQueryHandler(five, pattern="^" + str(STAGE_FIVE) + "$"),
+                # CallbackQueryHandler(six, pattern="^" + str(STAGE_SIX) + "$"),
             ],
             # END_ROUTES: [
                 # CallbackQueryHandler(start_over, pattern="^" + str(ONE) + "$"),
