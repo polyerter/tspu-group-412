@@ -26,6 +26,10 @@ START_ROUTES, END_ROUTES = range(2)
 # Callback data
 STAGE_ONE, STAGE_TWO, STAGE_THREE, STAGE_FOUR = range(4)
 
+actual = {
+    'course': None,
+    'section': None,
+}
 
 def grouped(array, num=3):
     return [array[i:i+num] for i in range(0, len(array), num)]
@@ -34,7 +38,7 @@ def grouped(array, num=3):
 class Section:
     id: int
     name: str
-    text: str
+    text: str = ''
 
     key = 'section_'
 
@@ -51,34 +55,49 @@ class Course:
     id: int
     name: str
     sections: list
+    text: str = ''
 
     key = 'course_'
 
-    def __init__(self, id: int, name: str, sections: list):
+    def __init__(self, id: int, name: str, sections: list, text=''):
         self.id = id
         self.name = name
         self.sections = sections
+        self.text = text
 
     def get_inline_button(self):
         return InlineKeyboardButton(self.name, callback_data=self.key + str(self.id))
+    
+    def get_section_of_string(self, string):
+        pk = get_id_of_str(string, Section.key)
+
+        return get_item_of_list_by_id(self.sections, pk)
 
 
 COURSES = [
-    Course(1, 'Python', [Section(1, 'Урок 1',), Section(2, 'Урок 2'), Section(3, 'Урок 3'), ]),
-    Course(2, 'SQL', [Section(1, 'Урок 1'), Section(2, 'Урок 2'), Section(3, 'Урок 3'), ]),
-    Course(3, 'PHP', [Section(1, 'Урок 1'), Section(2, 'Урок 2'), Section(3, 'Урок 3'), ]),
-    Course(4, 'Telegram', [Section(1, 'Урок 1'), Section(2, 'Урок 2'), Section(3, 'Урок 3'), ]),
-    Course(5, 'HTML', [Section(1, 'Урок 1'), Section(2, 'Урок 2'), Section(3, 'Урок 3'), ]),
+    Course(1, 'Python', [Section(1, 'Урок 1', text='test 1'), Section(2, 'Урок 2', text='test 1'), Section(3, 'Урок 3', text='test 1'), ], text='test 1'),
+    Course(2, 'SQL', [Section(1, 'Урок 1', text='test 1'), Section(2, 'Урок 2', text='test 1'), Section(3, 'Урок 3', text='test 1'), ], text='test 1'),
+    Course(3, 'PHP', [Section(1, 'Урок 1', text='test 1'), Section(2, 'Урок 2'), Section(3, 'Урок 3', text='test 1'), ], text='test 1'),
+    Course(4, 'Telegram', [Section(1, 'Урок 1', text='test 1'), Section(2, 'Урок 2'), Section(3, 'Урок 3', text='test 1'), ], text='test 1'),
+    Course(5, 'HTML', [Section(1, 'Урок 1', text='test 1'), Section(2, 'Урок 2', text='test 1'), Section(3, 'Урок 3', text='test 1'), ], text='test 1'),
 ]
 
-def get_course_by_course_key(course_key):
-    id = int(course_key.replace(Course.key, ''))
+def get_id_of_str(string, k = Course.key):
+    return int(string.replace(k, ''))
 
-    for c in COURSES:
-        if c.id == id:
+def get_item_of_list_by_id(items: list, pk: int):
+    for c in items:
+        if c.id == pk:
             return c
-
+            
     return None
+
+def get_course_by_course_key(course_key):
+    pk = get_id_of_str(course_key, Course.key)
+
+    print('pk', pk)
+
+    return get_item_of_list_by_id(COURSES, pk)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -99,6 +118,14 @@ async def course_detail(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Show new choice of buttons"""
     query = update.callback_query
     course = get_course_by_course_key(query.data)
+
+    print(course)
+
+    actual['course'] = course
+
+    # print(
+    #     actual
+    # )
     
     section_keyboard = grouped([s.get_inline_button() for s in course.sections], 3)
 
@@ -107,6 +134,24 @@ async def course_detail(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(
         text=f'Курс по: {course.name} \n {course.text}', reply_markup=reply_markup
+    )
+    return START_ROUTES
+
+async def section_detail(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show new choice of buttons"""
+    query = update.callback_query  # example: section_1
+    # course = get_course_by_course_key(query.data)
+    course = actual['course']
+    section = course.get_section_of_string(query.data)
+
+    # section_keyboard = grouped([s.get_inline_button() for s in course.sections], 3)
+    section_keyboard = []
+
+    await query.answer()
+    keyboard = section_keyboard
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.edit_message_text(
+        text=f'{section.name} \n {section.text}', reply_markup=reply_markup
     )
     return START_ROUTES
 
@@ -123,6 +168,7 @@ def main() -> None:
         states={
             START_ROUTES: [
                 CallbackQueryHandler(course_detail, pattern="^" + Course.key),
+                CallbackQueryHandler(section_detail, pattern="^" + Section.key),
             ],
             # END_ROUTES: [
                 # CallbackQueryHandler(start_over, pattern="^" + str(ONE) + "$"),
