@@ -64,9 +64,16 @@ class Course:
         self.name = name
         self.sections = sections
         self.text = text
+    
+    @property
+    def route_key(self):
+        return self.key + str(self.id)
 
     def get_inline_button(self):
-        return InlineKeyboardButton(self.name, callback_data=self.key + str(self.id))
+        return InlineKeyboardButton(self.name, callback_data=self.route_key)
+    
+    def get_back_button(self):
+        return InlineKeyboardButton('Назад', callback_data=self.route_key)
     
     def get_section_of_string(self, string):
         pk = get_id_of_str(string, Section.key)
@@ -118,14 +125,7 @@ async def course_detail(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Show new choice of buttons"""
     query = update.callback_query
     course = get_course_by_course_key(query.data)
-
-    print(course)
-
     actual['course'] = course
-
-    # print(
-    #     actual
-    # )
     
     section_keyboard = grouped([s.get_inline_button() for s in course.sections], 3)
 
@@ -143,9 +143,14 @@ async def section_detail(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     # course = get_course_by_course_key(query.data)
     course = actual['course']
     section = course.get_section_of_string(query.data)
+    
+    actual['section'] = section
 
-    # section_keyboard = grouped([s.get_inline_button() for s in course.sections], 3)
-    section_keyboard = []
+    section_keyboard = [
+        [
+            course.get_back_button(),
+        ]
+     ]
 
     await query.answer()
     keyboard = section_keyboard
