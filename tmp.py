@@ -11,8 +11,12 @@ def find_indx_by_id(pk, items: list):
 pk = id(a[2])
 indx = find_indx_by_id(pk, a)
 
-indx = 0
-new_indx = 1
-
 next_indx = indx + 1 if len(a) > indx + 1 else len(a) - 1
-prev_indx = indx - 1 if len(a) < indx - 1 else 0
+prev_indx = indx - 1 if indx - 1 > 0 else 0
+
+# print(
+#     'prev_indx', prev_indx,
+#     'current', a[indx], 
+#     'prev', a[prev_indx],
+#     'next', a[next_indx],
+# )
